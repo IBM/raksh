@@ -1,0 +1,281 @@
+// Copyright 2019 IBM Corp
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package securecontainer
+
+import (
+	"context"
+	"fmt"
+
+	securecontainersv1alpha1 "github.com/ibm/raksh/pkg/apis/securecontainers/v1alpha1"
+
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+)
+
+var log = logf.Log.WithName("controller_securecontainer")
+
+/**
+* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
+* business logic.  Delete these comments after modifying this file.*
+ */
+
+// Add creates a new SecureContainer Controller and adds it to the Manager. The Manager will set fields on the Controller
+// and Start it when the Manager is Started.
+func Add(mgr manager.Manager) error {
+	return add(mgr, newReconciler(mgr))
+}
+
+// newReconciler returns a new reconcile.Reconciler
+func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+	restconfig := mgr.GetConfig()
+	dynamicClient, _ := dynamic.NewForConfig(restconfig)
+	return &ReconcileSecureContainer{
+		client:        mgr.GetClient(),
+		dynamicClient: dynamicClient,
+		scheme:        mgr.GetScheme(),
+		restMapper:    mgr.GetRESTMapper(),
+	}
+}
+
+// add adds a new Controller to mgr with r as the reconcile.Reconciler
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	// Create a new controller
+	c, err := controller.New("securecontainer-controller", mgr, controller.Options{Reconciler: r})
+	if err != nil {
+		return err
+	}
+
+	// Watch for changes to primary resource SecureContainer
+	err = c.Watch(&source.Kind{Type: &securecontainersv1alpha1.SecureContainer{}}, &handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
+	// TODO(user): Modify this to be the types you create that are owned by the primary resource
+	// Watch for changes to secondary resource Pods and requeue the owner SecureContainer
+	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &corev1.ReplicationController{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &appsv1.DaemonSet{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &appsv1.ReplicaSet{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &batchv1.Job{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &securecontainersv1alpha1.SecureContainer{},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+var _ reconcile.Reconciler = &ReconcileSecureContainer{}
+
+// ReconcileSecureContainer reconciles a SecureContainer object
+type ReconcileSecureContainer struct {
+	// This client, initialized using mgr.Client() above, is a split client
+	// that reads objects from the cache and writes to the apiserver
+	client        client.Client
+	dynamicClient dynamic.Interface
+	scheme        *runtime.Scheme
+	restMapper    meta.RESTMapper
+}
+
+func setRuntimeClassName(object *unstructured.Unstructured, runtimeClassName string) error {
+	switch object.GetObjectKind().GroupVersionKind().GroupKind().Kind {
+	case "Pod":
+		err := unstructured.SetNestedField(object.Object, runtimeClassName, "spec", "runtimeClassName")
+		if err != nil {
+			return err
+		}
+	case "Deployment", "Statefulset", "Daemonset", "Replicaset", "Job", "ReplicationController":
+		err := unstructured.SetNestedField(object.Object, runtimeClassName, "spec", "template", "spec", "runtimeClassName")
+		if err != nil {
+			return err
+		}
+	default:
+		err := fmt.Errorf("Failed to set the runtimeClassName: Not Supported kind type: %s", object.GetObjectKind().GroupVersionKind().GroupKind().Kind)
+		return err
+	}
+	return nil
+}
+
+func setAnnotations(object *unstructured.Unstructured, annotations map[string]string) error {
+	switch object.GetObjectKind().GroupVersionKind().GroupKind().Kind {
+	case "Pod":
+		err := unstructured.SetNestedStringMap(object.Object, annotations, "metadata", "annotations")
+		if err != nil {
+			return err
+		}
+	case "Deployment", "Statefulset", "Daemonset", "Replicaset", "Job", "ReplicationController":
+		err := unstructured.SetNestedStringMap(object.Object, annotations, "spec", "template", "metadata", "annotations")
+		if err != nil {
+			return err
+		}
+	default:
+		err := fmt.Errorf("Failed to set the annotations: Not Supported kind type: %s", object.GetObjectKind().GroupVersionKind().GroupKind().Kind)
+		return err
+	}
+	return nil
+}
+
+// Reconcile reads that state of the cluster for a SecureContainer object and makes changes based on the state read
+// and what is in the SecureContainer.Spec
+// TODO(user): Modify this Reconcile function to implement your Controller logic.  This example creates
+// a Pod as an example
+// Note:
+// The Controller will requeue the Request to be processed again if the returned error is non-nil or
+// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
+func (r *ReconcileSecureContainer) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger.Info("Reconciling SecureContainer")
+
+	// Fetch the SecureContainer instance
+	instance := &securecontainersv1alpha1.SecureContainer{}
+	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			return reconcile.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
+	}
+
+	secureContainerImage := &securecontainersv1alpha1.SecureContainerImage{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Spec.SecureContainerImageRef.Name, Namespace: request.Namespace}, secureContainerImage)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	imageDirWithName, err := secureContainerImage.GetImageDirWithName()
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	annotations := map[string]string{
+		"io.kata-containers.config.hypervisor.initrd": imageDirWithName + "/initrd.img",
+		"io.kata-containers.config.hypervisor.kernel": imageDirWithName + "/vmlinux",
+	}
+	runtimeClassName := secureContainerImage.GetRuntimeClassName()
+
+	resource := &unstructured.Unstructured{}
+	err = resource.UnmarshalJSON(instance.Object.Raw)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err := setRuntimeClassName(resource, runtimeClassName); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err := setAnnotations(resource, annotations); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err := controllerutil.SetControllerReference(instance, resource, r.scheme); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	mapping, err := r.restMapper.RESTMapping(resource.GetObjectKind().GroupVersionKind().GroupKind())
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	_, err = r.dynamicClient.Resource(mapping.Resource).Namespace(request.Namespace).Get(resource.GetName(), metav1.GetOptions{})
+	if err != nil && apierrors.IsNotFound(err) {
+		_, err := r.dynamicClient.Resource(mapping.Resource).Namespace(request.Namespace).Create(resource, metav1.CreateOptions{})
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+	return reconcile.Result{}, nil
+}

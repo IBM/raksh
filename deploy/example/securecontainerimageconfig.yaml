@@ -1,0 +1,8 @@
+apiVersion: securecontainers.k8s.io/v1alpha1
+kind: SecureContainerImageConfig
+metadata:
+  name: nginx-securecontainerimageconfig
+spec:
+  imageDir: /var/lib/kubelet/secure-images
+  runtimeClassName: kata-containers
+

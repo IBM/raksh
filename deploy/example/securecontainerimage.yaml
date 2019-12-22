@@ -1,0 +1,10 @@
+apiVersion: securecontainers.k8s.io/v1alpha1
+kind: SecureContainerImage
+metadata:
+  name: nginx-securecontainerimage
+spec:
+  vmImage: <image-registry>/nginx-securecontainerimage:latest
+  imagePullSecrets:
+    - name: regcred
+  SecureContainerImageConfigRef:
+    name: nginx-securecontainerimageconfig

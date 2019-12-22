@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: securecontainer-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: securecontainer-operator
+  template:
+    metadata:
+      labels:
+        name: securecontainer-operator
+    spec:
+      imagePullSecrets:
+      - name: regcred
+      nodeSelector:
+        node-role.kubernetes.io/master: ''
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Equal"
+        effect: "NoSchedule"
+      - key: "node-role.kubernetes.io/master"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      serviceAccountName: securecontainer-operator
+      containers:
+        - name: securecontainer-operator
+          # Replace this with your image registry hosting the operator image
+          image: <image-registry>//securecontainer-operator:latest
+          command:
+          - securecontainer-operator
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "securecontainer-operator"
