@@ -76,7 +76,7 @@ $ VERSION=latest REGISTRY=docker.io ORG=projectraksh IMAGE=securecontainer-opera
 
 # Building the Kata (Raksh) agent and initrd
 
-Follow the steps mentioned [here](https://github.com/ibm/raksh-agent/README.md) to build the agent and initrd
+Follow the steps mentioned [here](https://github.com/IBM/raksh-agent/blob/1.9.1-raksh-agent/README.md) to build the agent and initrd
 
 # Quick Start
 ## Deploy the securecontainer-operator
