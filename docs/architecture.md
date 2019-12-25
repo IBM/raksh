@@ -35,8 +35,8 @@ The following high level steps explains the conversion of the applciation YAML
 
 1. Read the container specification from the YAML and create a ConfigMap for the spec
 2. Encrypt the ConfigMap using symmetric key and a random unique string (nonce)
-3. Store the symmetric key, nonce in Kata initrd and modify it for SVM (lockbox creation, encrypt rootfs etc)
-3.1 When using it for development encrypted rootfs is not needed. Additionally the key can be stored and retrieved from vault
+3. Store the symmetric key, nonce in Kata initrd and modify it for SVM (lockbox creation, encrypt rootfs etc) . 
+    * When using it for development encrypted rootfs is not needed. Additionally the key can be stored and retrieved from vault
 4. Create container image consisting of Kata kernel and initrd. This will be the SecureContainerImage resource
 5. Output modified YAML. This will use the SecureContainer resource
 
