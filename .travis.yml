@@ -1,0 +1,47 @@
+language: go
+sudo: required
+
+branches:
+  only:
+  - master
+
+go:
+- 1.12
+
+go_import_path: github.com/ibm/raksh
+
+before_install:
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y install docker-ce
+
+services:
+  - docker
+
+stages:
+  - build
+  - name: test
+    if: type = pull_request
+  - name: deploy
+    if: type = push
+
+jobs:
+  include:
+    - stage: build
+      name: Build
+      script:
+        - make build-binary
+        - make all-container
+    - stage: test
+      name: Test
+      script:
+        - make verify
+        - make tests
+    - stage: deploy
+      name: Push the images and manifest
+      script:
+        - make docker-login
+        - make all-container
+        - make all-push
+        - make push-manifest

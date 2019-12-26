@@ -3,15 +3,15 @@
 
 export PATH:=$(PATH):$(CURDIR)"/build/_output/bin"
 
-REGISTRY?=sys-powercloud-docker-local.artifactory.swg-devops.com
-ORG?=raksh
+REGISTRY?=docker.io
+ORG?=projectraksh
 
 DOCKERFILES=Dockerfile.sc-scratch Dockerfile.securecontainer-operator
 IMAGE?=securecontainer-operator
 IMAGES=$(subst Dockerfile.,,$(DOCKERFILES))
 IMAGE_NAME=$(ORG)/$(IMAGE)
 
-VERSION?=$(shell git describe --tags --dirty)
+VERSION?=master
 BUILD_FLAGS?=-a -tags netgo -ldflags '-w -extldflags "-static"'
 DOCKER ?= docker
 SED_I?=sed -i
