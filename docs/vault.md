@@ -86,7 +86,7 @@ $ echo -n "symm_key" | base64 -w 0 ; echo ""
 c3ltbV9rZXk=
 ```
 
-Now we will take all these vaules and embed them into a Kubernetes Secret,
+Now we will take all these values and embed them into a Kubernetes Secret,
 
 ```yaml
 apiVersion: v1
