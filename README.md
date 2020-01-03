@@ -34,11 +34,11 @@ For more details refer to the following links
 - Kubecon Europe 2019 [ppt](https://static.sched.com/hosted_files/kccnceu19/5c/KubeCon-Europe-2019-protected-memory.pdf)
 
 ## Team
-[Harshal Patil](https://github.com/harche)
-[Manjunath Kumatagi](https://github.com/mkumatag)
-[Nitesh Konkar](https://github.com/nitkon)
-[Pradipta Banerjee](https://github.com/bpradipt)
-[Suhail Anjum](https://github.com/suhailgray)
+[Harshal Patil](https://github.com/harche)    
+[Manjunath Kumatagi](https://github.com/mkumatag)    
+[Nitesh Konkar](https://github.com/nitkon)   
+[Pradipta Banerjee](https://github.com/bpradipt)   
+[Suhail Anjum](https://github.com/suhailgray)     
 
 # Prerequisites
 
