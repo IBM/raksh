@@ -1,10 +1,10 @@
 # Overview
 Raksh (`protect`) project is created with the aim to secure Kubernetes deployed
-workload along with its specification by leveraging hardware assisted security.
-This development was primarily to leverage Protected Execution Facility (PEF)
-capability (similar to AMD SEV) provided by Power (Power9) processors.  Simply
-put, PEF provides the ability to secure data-in-use by protecting access to
-specific memory regions.
+workload along with its specification (POD or Deployment YAML) by leveraging VM based Trusted Execution Environment (TEE).
+Simply put Raksh makes it easier to use VM based TEE with containers in a Kubernetes cluster.
+
+The initial development was primarily to leverage Protected Execution Facility (PEF)
+capability provided by Power (Power9) processors. However it should be pretty straight forward to adapt it for any other VM based TEEs, for example AMD Secure Encrypted Virtualisation (SEV). 
 
 PEF introduces a concept of secure VM (SVM). Anything running inside the VM is
 protected. More details on PEF is available here Ref:
@@ -13,25 +13,30 @@ https://www.youtube.com/watch?v=pKh_mPPo9X4
 Our goal was to leverage the PEF  functionality with Kubernetes to provide a
 more secure option for our clients to deploy their containerized application.
 Since the protection and isolation is provided by the virtualization layer (KVM
-with support for SVM), the natural choice was to leverage Kata containers as the
+with support for SVM), the natural choice was to leverage Kata containers runtime as the
 basis. There are already examples of Kata integration with different
 virtualization technologies for improved security and isolation (firecracker
-etc)
+etc).
 
 We also had a need for strong coupling between the container image and the VM
-image and go a step further to protect the application spec as well.
+image and go a step further to protect the application specification (K8s POD/Deployment YAML) as well. More details on how we protect the application specification is available in the following [doc](docs/secure_container_yaml.md)
 
 We leverage Kata containers. However we use a modified Kata agent with the following
-functionalities
+functionalities:
 
-1. Support for Decrypting the spec inside the VM
-2. Creating the containers based on the decrypted spec
+1. Support for decrypting the application specification inside the VM
+2. Creating the containers based on the decrypted specification
+
+Tying VM based TEE (eg. PEF) with a VM container runtime (Kata) provides us best of both worlds:
+1.	Data in use protection
+2.	Increased isolation
+3.	No change in application code (like required by process-based TEE)
 
 
-For more details refer to the following links
-
+For more details please refer to the following links
 - Kubecon Europe 2019 [video](https://www.youtube.com/watch?v=pGMdSFlD0_E)
 - Kubecon Europe 2019 [ppt](https://static.sched.com/hosted_files/kccnceu19/5c/KubeCon-Europe-2019-protected-memory.pdf)
+
 
 ## Team
 [Harshal Patil](https://github.com/harche)    
