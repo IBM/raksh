@@ -34,6 +34,7 @@ Tying VM based TEE (eg. PEF) with a VM container runtime (Kata) provides us best
 
 
 For more details please refer to the following links
+- Raksh Overview [pdf](https://github.com/IBM/raksh/blob/master/docs/raksh-intro.pdf)
 - Kubecon Europe 2019 [video](https://www.youtube.com/watch?v=pGMdSFlD0_E)
 - Kubecon Europe 2019 [ppt](https://static.sched.com/hosted_files/kccnceu19/5c/KubeCon-Europe-2019-protected-memory.pdf)
 
