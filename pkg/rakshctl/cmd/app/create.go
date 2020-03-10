@@ -322,10 +322,41 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 
 	maskSensitiveData(podSpec)
 	mountConfigMap(podSpec, cmObj)
+	insertRakshSecrets(podSpec, typeflags.RakshSecrets)
 
 	scObj = newSecureContainer(securePrefix+deploymentMetadata.Name, secureContainerImage, out.(runtime.Object))
 
 	return scObj, cmObj, nil
+}
+
+func insertRakshSecrets(pod *corev1.PodSpec, secretName string) {
+	rakshSecrets := []corev1.EnvVar{
+		{
+			Name: "SC_CONFIGMAP_KEY",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: secretName,
+					},
+					Key: "configMapKey",
+				},
+			},
+		},
+		{
+			Name: "SC_IMAGE_KEY",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: secretName,
+					},
+					Key: "imageKey",
+				},
+			},
+		},
+	}
+	for index := range pod.Containers {
+		pod.Containers[index].Env = append(pod.Containers[index].Env, rakshSecrets...)
+	}
 }
 
 func writeObjTo(obj interface{}, writer io.Writer) error {

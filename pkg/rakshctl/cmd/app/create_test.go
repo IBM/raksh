@@ -21,50 +21,28 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func TestInsertVaultSecret(t *testing.T) {
-	testVaultSecretName := "test-vault-secret"
+func TestInsertRakshSecret(t *testing.T) {
+	testRakshSecretName := "test-raksh-secret"
 	expectSecrets := []corev1.EnvVar{
 		{
-			Name: "SC_VAULT_ADDR",
+			Name: "SC_CONFIGMAP_KEY",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testVaultSecretName,
+						Name: testRakshSecretName,
 					},
-					Key: "vaultAdd",
+					Key: "configMapKey",
 				},
 			},
 		},
 		{
-			Name: "SC_VAULT_TOKEN",
+			Name: "SC_IMAGE_KEY",
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testVaultSecretName,
+						Name: testRakshSecretName,
 					},
-					Key: "vaultToken",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_SECRET",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testVaultSecretName,
-					},
-					Key: "secretName",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_SYMM_KEY",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testVaultSecretName,
-					},
-					Key: "keyName",
+					Key: "imageKey",
 				},
 			},
 		},
@@ -76,7 +54,7 @@ func TestInsertVaultSecret(t *testing.T) {
 		},
 	}
 
-	insertVaultSecret(testpod, testVaultSecretName)
+	insertRakshSecrets(testpod, testRakshSecretName)
 
 	for i := range testpod.Containers {
 		if equal := reflect.DeepEqual(expectSecrets, testpod.Containers[i].Env); !equal {

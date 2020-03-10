@@ -15,6 +15,7 @@
 package flags
 
 var (
-	Verbose bool
-	Key     string
+	Verbose      bool
+	Key          string
+	RakshSecrets string
 )
