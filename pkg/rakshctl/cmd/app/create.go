@@ -323,65 +323,9 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 	maskSensitiveData(podSpec)
 	mountConfigMap(podSpec, cmObj)
 
-	if typeflags.VaultSecret != "" {
-		insertVaultSecret(podSpec, typeflags.VaultSecret)
-	}
-
 	scObj = newSecureContainer(securePrefix+deploymentMetadata.Name, secureContainerImage, out.(runtime.Object))
 
 	return scObj, cmObj, nil
-}
-
-func insertVaultSecret(pod *corev1.PodSpec, secretName string) {
-	vaultSecrets := []corev1.EnvVar{
-		{
-			Name: "SC_VAULT_ADDR",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "vaultAdd",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_TOKEN",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "vaultToken",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_SECRET",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "secretName",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_SYMM_KEY",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "keyName",
-				},
-			},
-		},
-	}
-	for index := range pod.Containers {
-		pod.Containers[index].Env = append(pod.Containers[index].Env, vaultSecrets...)
-	}
 }
 
 func writeObjTo(obj interface{}, writer io.Writer) error {

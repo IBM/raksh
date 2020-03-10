@@ -123,11 +123,6 @@ func appendKeys(src string, dest string) error {
 
 	symmKey, nonce, err := crypto.GetConfigMapKeys(flags.Key)
 
-	if flags.VaultSecret != "" {
-		//If vault secret is passed then don't put the symmKeyFile in the initrd
-		symmKey = nil
-	}
-
 	var keys = []cpioutil.File{
 		{Name: "symm_key", Body: symmKey},
 		{Name: "nonce", Body: nonce},

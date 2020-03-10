@@ -15,7 +15,6 @@
 package flags
 
 var (
-	Verbose     bool
-	Key         string
-	VaultSecret string
+	Verbose bool
+	Key     string
 )

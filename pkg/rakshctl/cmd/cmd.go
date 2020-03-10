@@ -56,7 +56,6 @@ func NewrakshctlCommand() *cobra.Command {
 	cmds.PersistentFlags().StringVarP(&flags.Key, "symmKeyFile", "k", "", "Path to AES_256 Symmetric key to encrypt")
 	//Symmetric Key should always be provided
 	cmds.MarkPersistentFlagRequired("symmKeyFile")
-	cmds.PersistentFlags().StringVarP(&flags.VaultSecret, "vaultSecret", "s", "", "Kubernetes secret name with Vault details")
 
 	return cmds
 }
