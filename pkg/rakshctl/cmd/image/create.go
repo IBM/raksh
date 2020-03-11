@@ -26,12 +26,8 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
-	"github.com/ibm/raksh/pkg/crypto"
 	appcmd "github.com/ibm/raksh/pkg/rakshctl/cmd/app"
-	"github.com/ibm/raksh/pkg/rakshctl/types/flags"
 	"github.com/ibm/raksh/pkg/utils/cmd"
-	cpioutil "github.com/ibm/raksh/pkg/utils/cpio"
-	gziputil "github.com/ibm/raksh/pkg/utils/gzip"
 )
 
 var (
@@ -115,37 +111,6 @@ func copy(source, destination string) error {
 	return nil
 }
 
-func appendKeys(src string, dest string) error {
-	initrdBytes, err := ioutil.ReadFile(src)
-	if err != nil {
-		return err
-	}
-
-	symmKey, nonce, err := crypto.GetConfigMapKeys(flags.Key)
-
-	var keys = []cpioutil.File{
-		{Name: "symm_key", Body: symmKey},
-		{Name: "nonce", Body: nonce},
-	}
-
-	cbytes, err := cpioutil.Create(keys)
-	if err != nil {
-		return fmt.Errorf("Failed to create cpio from keys: %+v", err)
-	}
-
-	gzbytes, err := gziputil.Create(cbytes)
-	if err != nil {
-		return fmt.Errorf("Failed to create gzip from cpio bytes: %+v", err)
-	}
-
-	final := append(initrdBytes, gzbytes...)
-	err = ioutil.WriteFile(dest, final, 0644)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func createImage() error {
 	dockerfile := `FROM {{.BaseImage}}
 ADD ./initrd.img /securecontainer/
@@ -176,9 +141,9 @@ ADD ./vmlinux /securecontainer/`
 		return fmt.Errorf("executing template: %+v", err)
 	}
 
-	err = appendKeys(initrd, dir+"/initrd.img")
+	err = copy(initrd, dir+"/initrd.img")
 	if err != nil {
-		return fmt.Errorf("Failed to append keys to given initrd: %+v", err)
+		return fmt.Errorf("Failed to copy %s to %s/initrd", initrd, dir)
 	}
 
 	err = copy(vmlinux, dir+"/vmlinux")
