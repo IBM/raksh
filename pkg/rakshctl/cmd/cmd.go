@@ -56,7 +56,11 @@ func NewrakshctlCommand() *cobra.Command {
 	cmds.PersistentFlags().StringVarP(&flags.Key, "symmKeyFile", "k", "", "Path to AES_256 Symmetric key to encrypt")
 	//Symmetric Key should always be provided
 	cmds.MarkPersistentFlagRequired("symmKeyFile")
-	cmds.PersistentFlags().StringVarP(&flags.RakshSecrets, "rakshSecret", "s", "", "Kubernetes secret name having required secrets for Raksh")
+	//Nonce to be used for encryption
+	cmds.PersistentFlags().StringVarP(&flags.Nonce, "nonceFile", "n", "", "Path to Nonce")
+	cmds.MarkPersistentFlagRequired("nonceFile")
+
+	cmds.PersistentFlags().BoolVarP(&flags.Insecure, "insecure", "", false, "use this when using systems without support for VM TEE")
 
 	return cmds
 }

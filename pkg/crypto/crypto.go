@@ -18,8 +18,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	b64 "encoding/base64"
-
-	randutil "github.com/ibm/raksh/pkg/utils/random"
 )
 
 var (
@@ -35,8 +33,8 @@ var (
 
 // EncryptConfigMap encrypts the configMap and returns the base64 encoded string
 // of the encrypted config
-func EncryptConfigMap(configMap []byte, keyPath string) (encConfigMap string, err error) {
-	symmKey, nonce, err := GetConfigMapKeys(keyPath)
+func EncryptConfigMap(configMap []byte, keyPath string, noncePath string) (encConfigMap string, err error) {
+	symmKey, nonce, err := GetConfigMapKeys(keyPath, noncePath)
 	if err != nil {
 		return "", nil
 	}
@@ -55,7 +53,7 @@ func EncryptConfigMap(configMap []byte, keyPath string) (encConfigMap string, er
 }
 
 // GetConfigMapKeys returns the keys used for encrypting the configMap
-func GetConfigMapKeys(keyPath string) (symmKey []byte, nonce []byte, err error) {
+func GetConfigMapKeys(keyPath string, noncePath string) (symmKey []byte, nonce []byte, err error) {
 	if symmetricKey != nil && symmKeyNonce != nil {
 		return symmetricKey, symmKeyNonce, nil
 	}
@@ -63,12 +61,12 @@ func GetConfigMapKeys(keyPath string) (symmKey []byte, nonce []byte, err error) 
 	if err != nil {
 		return nil, nil, err
 	}
-	symmKeyNonce, err = randutil.GetBytes(12)
-
+	nonce, err = getNonce(noncePath)
 	if err != nil {
 		return nil, nil, err
 	}
-	return symmKey, symmKeyNonce, nil
+
+	return symmKey, nonce, nil
 }
 
 func getSymmetricKey(keyPath string) ([]byte, error) {
@@ -77,4 +75,12 @@ func getSymmetricKey(keyPath string) ([]byte, error) {
 	symmetricKey, err = readKeyFromFile(keyPath)
 
 	return symmetricKey, err
+}
+
+func getNonce(noncePath string) ([]byte, error) {
+	var err error
+
+	symmKeyNonce, err = readKeyFromFile(noncePath)
+
+	return symmKeyNonce, err
 }

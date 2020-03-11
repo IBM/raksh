@@ -54,7 +54,11 @@ var (
 )
 
 const (
-	securePrefix = "secure-"
+	securePrefix           = "secure-"
+	secretFileName         = "raksh-secret.yaml"
+	rakshSecretName        = "raksh-secret"
+	rakshDummyConfigMapKey = "cmFrc2hkdW1teWtleQo="     //base64 encoded value "rakshdummykey"
+	rakshDummyNonce        = "cmFrc2hkdW1teW5vbmNlCg==" //base64 encode value "rakshdummynonce"
 )
 
 func NewCmdAppCreate() *cobra.Command {
@@ -99,6 +103,7 @@ func main() error {
 			fmt.Printf(UnsupportedKindMsg+"\n", file)
 			continue
 		}
+
 		scObj, cmObj, err := secureObject(obj)
 		if err != nil {
 			return err
@@ -125,6 +130,13 @@ func main() error {
 		fmt.Println("Wrote to ", secureFile)
 		fmt.Printf("Processing %s...: DONE\n", file)
 	}
+
+	err = createRakshSecret(rakshSecretName, "default", typeflags.Key, typeflags.Nonce)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Wrote to ", secretFileName)
+
 	return nil
 }
 
@@ -183,6 +195,60 @@ type Container struct {
 	Env       []corev1.EnvVar              `json:"env,omitempty"`
 	Ports     []corev1.ContainerPort       `json:"ports,omitempty"`
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+func createRakshSecret(secretName, namespace string, keyPath string, noncePath string) error {
+
+	var err error
+
+	data := map[string][]byte{
+		"configMapKey": []byte(rakshDummyConfigMapKey),
+		"nonce":        []byte(rakshDummyNonce),
+	}
+	label := map[string]string{
+		"comment": "This is dummy secret for use with VM TEE",
+	}
+	//Get key and nonce if not using VM TEE
+	if typeflags.Insecure {
+		key, nonce, err := crypto.GetConfigMapKeys(keyPath, noncePath)
+		if err != nil {
+			fmt.Println("Unable to get the Key and Nonce")
+			return err
+		}
+		data = map[string][]byte{
+			"configMapKey": []byte(key),
+			"nonce":        []byte(nonce),
+		}
+		label = map[string]string{
+			"comment": "This is the secret used to encrypt the k8s YAML",
+		}
+	}
+
+	//Write YAML
+	secret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: secretName, Labels: label},
+		Data:       data,
+	}
+
+	var outf *os.File
+	if output != "" {
+		secretFile := path.Join(output, secretFileName)
+		os.MkdirAll(filepath.Dir(secretFile), os.ModePerm)
+	}
+	if outf, err = os.Create(secretFileName); err != nil {
+		return err
+	}
+	defer outf.Close()
+
+	err = writeObjTo(secret, outf)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func newConfigMap(name, namespace string) corev1.ConfigMap {
@@ -312,7 +378,7 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 		cmObj.Data[container.Name] = string(cbytes)
 
 		// TODO - Move the symm key logic to create initrd command
-		encConfigMap, err := crypto.EncryptConfigMap(cbytes, typeflags.Key)
+		encConfigMap, err := crypto.EncryptConfigMap(cbytes, typeflags.Key, typeflags.Nonce)
 		if err != nil {
 			return scObj, cmObj, err
 		}
@@ -322,7 +388,7 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 
 	maskSensitiveData(podSpec)
 	mountConfigMap(podSpec, cmObj)
-	insertRakshSecrets(podSpec, typeflags.RakshSecrets)
+	insertRakshSecrets(podSpec, rakshSecretName)
 
 	scObj = newSecureContainer(securePrefix+deploymentMetadata.Name, secureContainerImage, out.(runtime.Object))
 
