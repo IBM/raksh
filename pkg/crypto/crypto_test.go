@@ -45,24 +45,35 @@ func TestEncryptConfigMapFiles(t *testing.T) {
 		t.Error(err)
 	}
 
-	encConfigMap, err := EncryptConfigMap([]byte(testString), keyPath)
+	noncePath := dir1 + "nonceFile"
+	nonce := make([]byte, 12)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		t.Error(err)
+	}
+
+	err = ioutil.WriteFile(noncePath, nonce, 0644)
+	if err != nil {
+		t.Error(err)
+	}
+
+	encConfigMap, err := EncryptConfigMap([]byte(testString), keyPath, noncePath)
 
 	if err != nil {
 		t.Errorf("Failed to encrypt configMap %v", err)
 	}
 
-	decryptedConfigMap := decryptConfigMap(encConfigMap, keyPath)
+	decryptedConfigMap := decryptConfigMap(encConfigMap, keyPath, noncePath)
 
 	if testString != decryptedConfigMap {
 		t.Errorf("Failed to match decryped string, expected %s but got %s", testString, decryptedConfigMap)
 	}
 }
 
-func decryptConfigMap(configMap string, keyPath string) string {
+func decryptConfigMap(configMap string, keyPath string, noncePath string) string {
 
 	sDec, _ := b64.StdEncoding.DecodeString(configMap)
 
-	key, nonce, err := GetConfigMapKeys(keyPath)
+	key, nonce, err := GetConfigMapKeys(keyPath, noncePath)
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
