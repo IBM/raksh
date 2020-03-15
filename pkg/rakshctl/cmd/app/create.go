@@ -201,9 +201,10 @@ func createRakshSecret(secretName, namespace string, keyPath string, noncePath s
 
 	var err error
 
-	data := map[string][]byte{
-		"configMapKey": []byte(rakshDummyConfigMapKey),
-		"nonce":        []byte(rakshDummyNonce),
+	data := map[string]string{
+		"configMapKey": "rakshDummyConfigMapKey",
+		"imageKey":     "rakshDummyImageKey",
+		"nonce":        "rakshDummyNonce",
 	}
 	label := map[string]string{
 		"comment": "dummy_secret",
@@ -215,12 +216,14 @@ func createRakshSecret(secretName, namespace string, keyPath string, noncePath s
 			fmt.Println("Unable to get the Key and Nonce")
 			return err
 		}
-		data = map[string][]byte{
-			"configMapKey": []byte(key),
-			"nonce":        []byte(nonce),
+		//The Keys are base64 encoded
+		data = map[string]string{
+			"configMapKey": string(key),
+			"imageKey":     string(key),
+			"nonce":        string(nonce),
 		}
 		label = map[string]string{
-			"comment": "This is the secret used to encrypt the k8s YAML",
+			"comment": "actual_secret",
 		}
 	}
 
@@ -231,7 +234,7 @@ func createRakshSecret(secretName, namespace string, keyPath string, noncePath s
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: secretName, Labels: label},
-		Data:       data,
+		StringData: data,
 	}
 
 	var outf *os.File

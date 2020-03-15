@@ -18,6 +18,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	b64 "encoding/base64"
+	"fmt"
 )
 
 var (
@@ -39,7 +40,19 @@ func EncryptConfigMap(configMap []byte, keyPath string, noncePath string) (encCo
 		return "", nil
 	}
 
-	block, err := aes.NewCipher(symmKey)
+	//The keys are base64 encoded. Decode it before passing to encryption function
+	symmKeyDecoded, err := b64.StdEncoding.DecodeString(string(symmKey))
+	if err != nil {
+		fmt.Printf("Unable to decode Key\n")
+		return "", err
+	}
+	nonceDecoded, err := b64.StdEncoding.DecodeString(string(nonce))
+	if err != nil {
+		fmt.Printf("Unable to decode Nonce\n")
+		return "", err
+	}
+
+	block, err := aes.NewCipher(symmKeyDecoded)
 	if err != nil {
 		return "", err
 	}
@@ -49,7 +62,7 @@ func EncryptConfigMap(configMap []byte, keyPath string, noncePath string) (encCo
 		return "", err
 	}
 
-	return b64.StdEncoding.EncodeToString(aesgcm.Seal(nil, nonce, configMap, nil)), nil
+	return b64.StdEncoding.EncodeToString(aesgcm.Seal(nil, nonceDecoded, configMap, nil)), nil
 }
 
 // GetConfigMapKeys returns the keys used for encrypting the configMap
