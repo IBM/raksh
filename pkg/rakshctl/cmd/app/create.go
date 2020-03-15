@@ -206,7 +206,7 @@ func createRakshSecret(secretName, namespace string, keyPath string, noncePath s
 		"nonce":        []byte(rakshDummyNonce),
 	}
 	label := map[string]string{
-		"comment": "This is dummy secret for use with VM TEE",
+		"comment": "dummy_secret",
 	}
 	//Get key and nonce if not using VM TEE
 	if typeflags.Insecure {
@@ -388,41 +388,36 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 
 	maskSensitiveData(podSpec)
 	mountConfigMap(podSpec, cmObj)
-	insertRakshSecrets(podSpec, rakshSecretName)
+	mountRakshSecrets(podSpec, rakshSecretName)
 
 	scObj = newSecureContainer(securePrefix+deploymentMetadata.Name, secureContainerImage, out.(runtime.Object))
 
 	return scObj, cmObj, nil
 }
 
-func insertRakshSecrets(pod *corev1.PodSpec, secretName string) {
-	rakshSecrets := []corev1.EnvVar{
-		{
-			Name: "SC_CONFIGMAP_KEY",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "configMapKey",
-				},
-			},
-		},
-		{
-			Name: "SC_IMAGE_KEY",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "imageKey",
-				},
-			},
-		},
-	}
+//Mount the Raksh secrets
+func mountRakshSecrets(pod *corev1.PodSpec, secretName string) {
+	volumes := []corev1.Volume{}
+
 	for index := range pod.Containers {
-		pod.Containers[index].Env = append(pod.Containers[index].Env, rakshSecrets...)
+		volumeName := securePrefix + "volume-" + "raksh"
+		volume := corev1.Volume{
+			Name: volumeName,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+				},
+			},
+		}
+		volumes = append(volumes, volume)
+		volmount := corev1.VolumeMount{
+			Name:      volumeName,
+			ReadOnly:  true,
+			MountPath: "/etc/raksh-secrets",
+		}
+		pod.Containers[index].VolumeMounts = append(pod.Containers[index].VolumeMounts, volmount)
 	}
+	pod.Volumes = append(pod.Volumes, volumes...)
 }
 
 func writeObjTo(obj interface{}, writer io.Writer) error {
