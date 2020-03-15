@@ -401,18 +401,19 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 //Mount the Raksh secrets
 func mountRakshSecrets(pod *corev1.PodSpec, secretName string) {
 	volumes := []corev1.Volume{}
+	volumeName := securePrefix + "volume-" + "raksh"
+
+	volume := corev1.Volume{
+		Name: volumeName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: secretName,
+			},
+		},
+	}
+	volumes = append(volumes, volume)
 
 	for index := range pod.Containers {
-		volumeName := securePrefix + "volume-" + "raksh"
-		volume := corev1.Volume{
-			Name: volumeName,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: secretName,
-				},
-			},
-		}
-		volumes = append(volumes, volume)
 		volmount := corev1.VolumeMount{
 			Name:      volumeName,
 			ReadOnly:  true,
@@ -420,6 +421,7 @@ func mountRakshSecrets(pod *corev1.PodSpec, secretName string) {
 		}
 		pod.Containers[index].VolumeMounts = append(pod.Containers[index].VolumeMounts, volmount)
 	}
+
 	pod.Volumes = append(pod.Volumes, volumes...)
 }
 
