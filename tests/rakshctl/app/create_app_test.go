@@ -65,9 +65,9 @@ func TestAppCreateUnsupportedWorkload(t *testing.T) {
 		t.Fatalf("Failed to write to %s file", workload)
 	}
 
-	symmKeyFile := dir + "/symm_key"
+	symmKeyFile := dir + "/symmKey"
 
-	f, err := os.Create(symmKeyFile)
+	kf, err := os.Create(symmKeyFile)
 	if err != nil {
 		t.Fatalf("Error to create symmKeyFile file: %+v", err)
 	}
@@ -75,16 +75,36 @@ func TestAppCreateUnsupportedWorkload(t *testing.T) {
 	buf, err := randutil.GetBytes(32)
 	if err != nil {
 		t.Fatalf("Unable to get random bytes for key: %+v", err)
-		f.Close()
+		kf.Close()
 	}
 
-	_, err = f.Write(buf)
+	_, err = kf.Write(buf)
 	if err != nil {
-		t.Fatalf("Error in wirting key to symmKeyFile file: %+v", err)
-		f.Close()
+		t.Fatalf("Error in writing key to symmKeyFile file: %+v", err)
+		kf.Close()
 	}
 
-	var cmdArgs = []string{"app", "create", "-f", workload, "-i", "securecontainerimage-example", "--symmKeyFile", symmKeyFile}
+	nonceFile := dir + "/nonce"
+
+	nf, err := os.Create(nonceFile)
+	if err != nil {
+		t.Fatalf("Error to create nonce file: %+v", err)
+	}
+
+	buf, err = randutil.GetBytes(12)
+	if err != nil {
+		t.Fatalf("Unable to get random bytes for nonce: %+v", err)
+		nf.Close()
+	}
+
+	_, err = nf.Write(buf)
+	if err != nil {
+		t.Fatalf("Error in writing to nonceFile file: %+v", err)
+		nf.Close()
+	}
+
+	var cmdArgs = []string{"app", "create", "-f", workload, "-i", "securecontainerimage-example", "--symmKeyFile", symmKeyFile,
+		"--nonceFile", nonceFile}
 	std, stderr, err := cmd.Exec("rakshctl", cmdArgs)
 	fmt.Printf("stdout: %+v, stderr: %+v, err: %+v", std, stderr, err)
 	exp := fmt.Sprintf(app.UnsupportedKindMsg, workload)

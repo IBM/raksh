@@ -25,6 +25,8 @@ import (
 
 	randutil "github.com/ibm/raksh/pkg/utils/random"
 
+	b64 "encoding/base64"
+
 	"github.com/ibm/raksh/pkg/rakshctl/cmd/image"
 	"github.com/ibm/raksh/pkg/utils/cmd"
 )
@@ -35,6 +37,7 @@ type testcontext struct {
 	vmlinux   string
 	imageName string
 	keyFile   string
+	nonceFile string
 }
 
 var imageCreateCMD = []string{"image", "create"}
@@ -76,11 +79,11 @@ func (tc *testcontext) setup(t *testing.T) {
 	}
 	defer vmlinuxFD.Close()
 
-	symmKeyFile := filepath.Join(dir, "symm_key")
+	symmKeyFile := filepath.Join(dir, "symmKey")
 
 	keyFD, err := os.Create(symmKeyFile)
 	if err != nil {
-		t.Fatalf("Error to create symm_key file: %+v", err)
+		t.Fatalf("Error to create symmKey file: %+v", err)
 	}
 
 	buf, err := randutil.GetBytes(32)
@@ -89,15 +92,49 @@ func (tc *testcontext) setup(t *testing.T) {
 		keyFD.Close()
 	}
 
-	_, err = keyFD.Write(buf)
+	//Encode to base64 and write the key to the file
+	bufEncStr := b64.StdEncoding.EncodeToString(buf)
 	if err != nil {
-		t.Fatalf("Error in wirting key to symm_key file: %+v", err)
+		t.Fatalf("Unable to encode random bytes for key: %+v", err)
 		keyFD.Close()
+	}
+
+	_, err = keyFD.Write([]byte(bufEncStr))
+	if err != nil {
+		t.Fatalf("Error in wirting key to symmKey file: %+v", err)
+		keyFD.Close()
+	}
+
+	nonceFile := filepath.Join(dir, "nonce")
+
+	nonceFD, err := os.Create(nonceFile)
+	if err != nil {
+		t.Fatalf("Error to create nonce file: %+v", err)
+	}
+
+	buf, err = randutil.GetBytes(12)
+	if err != nil {
+		t.Fatalf("Unable to get random bytes for nonce: %+v", err)
+		nonceFD.Close()
+	}
+
+	//Encode to base64 and write the key to the file
+	bufEncStr = b64.StdEncoding.EncodeToString(buf)
+	if err != nil {
+		t.Fatalf("Unable to encode random bytes for key: %+v", err)
+		nonceFD.Close()
+	}
+
+	_, err = nonceFD.Write([]byte(bufEncStr))
+	if err != nil {
+		t.Fatalf("Error in wirting key to nonce file: %+v", err)
+		nonceFD.Close()
 	}
 
 	tc.vmlinux = vmlinuxFile
 	tc.imageName = randImageName()
 	tc.keyFile = symmKeyFile
+	tc.nonceFile = nonceFile
 }
 
 func (tc *testcontext) teardown() {
@@ -116,32 +153,32 @@ func TestWithDifferentArgs(t *testing.T) {
 	}{
 		{
 			"Positive test",
-			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--skip-app", "--symmKeyFile", tc.keyFile},
+			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			"",
 		},
 		{
 			"Missing vmlinux argument",
-			[]string{"--initrd", tc.initrd, "--skip-app", "--symmKeyFile", tc.keyFile},
+			[]string{"--initrd", tc.initrd, "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			`required flag(s) "vmlinux" not set`,
 		},
 		{
 			"Missing vmlinux and initrd arguments",
-			[]string{"--skip-app", "--symmKeyFile", tc.keyFile},
+			[]string{"--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			`required flag(s) "initrd", "vmlinux" not set`,
 		},
 		{
 			"Not-existent initrd",
-			[]string{"--initrd", "fakeinitrd", "--vmlinux", tc.vmlinux, "--skip-app", "--symmKeyFile", tc.keyFile},
+			[]string{"--initrd", "fakeinitrd", "--vmlinux", tc.vmlinux, "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			`open fakeinitrd: no such file or directory`,
 		},
 		{
 			"Not-existent vmlinux",
-			[]string{"--initrd", tc.initrd, "--vmlinux", "fakevmlinux", "--skip-app", "--symmKeyFile", tc.keyFile},
+			[]string{"--initrd", tc.initrd, "--vmlinux", "fakevmlinux", "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			`Failed to copy fakevmlinux to`,
 		},
 		{
 			"Fail docker push",
-			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--push", "--skip-app", "--symmKeyFile", tc.keyFile},
+			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--push", "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			"Failed to push the",
 		},
 	}
@@ -174,12 +211,12 @@ func TestImageName(t *testing.T) {
 	}{
 		{
 			"Missing Image Name",
-			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--skip-app", "--symmKeyFile", tc.keyFile},
+			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			image.MissingImageError,
 		},
 		{
 			"Invalid Image Name",
-			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "invalid-IMAGENAME:latest", "--skip-app", "--symmKeyFile", tc.keyFile},
+			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "invalid-IMAGENAME:latest", "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			"Failed to build the SecureContainer image",
 		},
 	}

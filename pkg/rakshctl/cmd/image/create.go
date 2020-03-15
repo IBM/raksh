@@ -66,14 +66,14 @@ func NewCmdImageCreate() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("\n\nPhase 1: Executing \"kubectl image create\" command")
+			fmt.Println("\n\nPhase 1: Executing \"rakshctl image create\" command")
 			fmt.Println("")
 			if err := createImage(); err != nil {
 				return err
 			}
 			if !skipAppCreation {
 				appc := appcmd.NewCmdAppCreate()
-				fmt.Println("\n\nPhase 2: Executing \"kubectl app create\" command")
+				fmt.Println("\n\nPhase 2: Executing \"rakshctl app create\" command")
 				fmt.Println("")
 				appcmd.Appflags.VisitAll(visitAppFlags)
 				fmt.Println("with args: ", appArgs)

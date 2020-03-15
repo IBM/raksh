@@ -64,7 +64,7 @@ func TestImageAppCreate(t *testing.T) {
 	fd.WriteString(sampleWorkload)
 
 	var cmdArgs = []string{"image", "create", "--initrd", tc.initrd, "--vmlinux", tc.vmlinux, randImageName(),
-		"--filename", sampleWorkloadYaml, "--image", "sample-securecontainerimage", "--symmKeyFile", tc.keyFile}
+		"--filename", sampleWorkloadYaml, "--image", "sample-securecontainerimage", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile}
 
 	std, stderr, err := executeCommand("rakshctl", cmdArgs...)
 	fmt.Printf("stdout: %+v, stderr: %+v, err: %+v", std, stderr, err)
@@ -112,7 +112,7 @@ func TestBuildCmd(t *testing.T) {
 	expectedSecureImage := randImageName()
 
 	var cmdArgs = []string{"image", "create", "--initrd", tc.initrd, "--vmlinux", tc.vmlinux, expectedSecureImage,
-		"--filename", sampleWorkloadYaml, "--image", "sample-securecontainerimage", "--buildCmd", customBuildCmd, "--symmKeyFile", tc.keyFile}
+		"--filename", sampleWorkloadYaml, "--image", "sample-securecontainerimage", "--buildCmd", customBuildCmd, "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile}
 
 	std, stderr, err := executeCommand("rakshctl", cmdArgs...)
 	fmt.Printf("stdout: %+v, stderr: %+v, err: %+v", std, stderr, err)
