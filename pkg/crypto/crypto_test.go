@@ -40,7 +40,13 @@ func TestEncryptConfigMapFiles(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = ioutil.WriteFile(keyPath, key, 0644)
+	//Encode the Key
+	keyEnc := b64.StdEncoding.EncodeToString(key)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = ioutil.WriteFile(keyPath, []byte(keyEnc), 0644)
 	if err != nil {
 		t.Error(err)
 	}
@@ -51,7 +57,10 @@ func TestEncryptConfigMapFiles(t *testing.T) {
 		t.Error(err)
 	}
 
-	err = ioutil.WriteFile(noncePath, nonce, 0644)
+	//Encode the nonce
+	nonceEnc := b64.StdEncoding.EncodeToString(nonce)
+
+	err = ioutil.WriteFile(noncePath, []byte(nonceEnc), 0644)
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +84,17 @@ func decryptConfigMap(configMap string, keyPath string, noncePath string) string
 
 	key, nonce, err := GetConfigMapKeys(keyPath, noncePath)
 
-	block, err := aes.NewCipher(key)
+	//The keys are base64 encoded. Decode it before passing to encryption function
+	keyDecoded, err := b64.StdEncoding.DecodeString(string(key))
+	if err != nil {
+		panic(err.Error())
+	}
+	nonceDecoded, err := b64.StdEncoding.DecodeString(string(nonce))
+	if err != nil {
+		panic(err.Error())
+	}
+
+	block, err := aes.NewCipher(keyDecoded)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -85,7 +104,7 @@ func decryptConfigMap(configMap string, keyPath string, noncePath string) string
 		panic(err.Error())
 	}
 
-	plaintextBytes, err := aesgcm.Open(nil, nonce, sDec, nil)
+	plaintextBytes, err := aesgcm.Open(nil, nonceDecoded, sDec, nil)
 	if err != nil {
 		panic(err.Error())
 	}
