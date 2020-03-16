@@ -135,8 +135,6 @@ func main() error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Wrote to ", secretFileName)
-
 	return nil
 }
 
@@ -238,11 +236,12 @@ func createRakshSecret(secretName, namespace string, keyPath string, noncePath s
 	}
 
 	var outf *os.File
+	secretFile := secretFileName
 	if output != "" {
-		secretFile := path.Join(output, secretFileName)
+		secretFile = path.Join(output, secretFileName)
 		os.MkdirAll(filepath.Dir(secretFile), os.ModePerm)
 	}
-	if outf, err = os.Create(secretFileName); err != nil {
+	if outf, err = os.Create(secretFile); err != nil {
 		return err
 	}
 	defer outf.Close()
@@ -251,6 +250,7 @@ func createRakshSecret(secretName, namespace string, keyPath string, noncePath s
 	if err != nil {
 		return err
 	}
+	fmt.Println("Wrote to ", secretFile)
 	return nil
 }
 
@@ -380,7 +380,6 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 		}
 		cmObj.Data[container.Name] = string(cbytes)
 
-		// TODO - Move the symm key logic to create initrd command
 		encConfigMap, err := crypto.EncryptConfigMap(cbytes, typeflags.Key, typeflags.Nonce)
 		if err != nil {
 			return scObj, cmObj, err
@@ -400,7 +399,6 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 
 //Mount the Raksh secrets
 func mountRakshSecrets(pod *corev1.PodSpec, secretName string) {
-	volumes := []corev1.Volume{}
 	volumeName := securePrefix + "volume-" + "raksh"
 
 	volume := corev1.Volume{
@@ -411,8 +409,6 @@ func mountRakshSecrets(pod *corev1.PodSpec, secretName string) {
 			},
 		},
 	}
-	volumes = append(volumes, volume)
-
 	for index := range pod.Containers {
 		volmount := corev1.VolumeMount{
 			Name:      volumeName,
@@ -421,8 +417,7 @@ func mountRakshSecrets(pod *corev1.PodSpec, secretName string) {
 		}
 		pod.Containers[index].VolumeMounts = append(pod.Containers[index].VolumeMounts, volmount)
 	}
-
-	pod.Volumes = append(pod.Volumes, volumes...)
+	pod.Volumes = append(pod.Volumes, volume)
 }
 
 func writeObjTo(obj interface{}, writer io.Writer) error {
