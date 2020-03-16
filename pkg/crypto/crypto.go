@@ -26,8 +26,7 @@ var (
 	// The same should be accessible to kata agent in order to decrypt the configMap.
 	symmetricKey []byte
 
-	// symmKeyNonce is randomly generated and is unique to the every attempt
-	// of encrypting configMap. This needs to be accessible to the kata agent
+	// symmKeyNonce is provided by the end user. This needs to be accessible to the kata agent
 	// in order to decrypt configMap.
 	symmKeyNonce []byte
 )
