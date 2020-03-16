@@ -167,12 +167,12 @@ func TestWithDifferentArgs(t *testing.T) {
 			`required flag(s) "initrd", "vmlinux" not set`,
 		},
 		{
-			"Not-existent initrd",
+			"Non-existent initrd",
 			[]string{"--initrd", "fakeinitrd", "--vmlinux", tc.vmlinux, "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			`open fakeinitrd: no such file or directory`,
 		},
 		{
-			"Not-existent vmlinux",
+			"Non-existent vmlinux",
 			[]string{"--initrd", tc.initrd, "--vmlinux", "fakevmlinux", "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			`Failed to copy fakevmlinux to`,
 		},
@@ -180,6 +180,16 @@ func TestWithDifferentArgs(t *testing.T) {
 			"Fail docker push",
 			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--push", "--skip-app", "--symmKeyFile", tc.keyFile, "--nonceFile", tc.nonceFile},
 			"Failed to push the",
+		},
+		{
+			"Non-existing symmKey",
+			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--skip-app", "--nonceFile", tc.nonceFile},
+			`required flag(s) "symmKeyFile" not set`,
+		},
+		{
+			"Non-existing nonce",
+			[]string{"--initrd", tc.initrd, "--vmlinux", tc.vmlinux, "--skip-app", "--symmKeyFile", tc.keyFile},
+			`required flag(s) "nonceFile" not set`,
 		},
 	}
 	for _, tt := range createTests {
