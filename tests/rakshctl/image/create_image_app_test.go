@@ -243,3 +243,34 @@ func TestSecureOperation(t *testing.T) {
 	}
 
 }
+
+func TestRakshSecretFileGeneration(t *testing.T) {
+	tc := &testcontext{}
+	tc.setup(t)
+	defer tc.teardown()
+
+	sampleWorkloadYaml := filepath.Join(tc.dir, "sample.yaml")
+	fd, err := os.Create(sampleWorkloadYaml)
+	if err != nil {
+		t.Fatalf("Error to create %s file", sampleWorkloadYaml)
+	}
+	defer fd.Close()
+	fd.WriteString(sampleWorkload)
+
+	var cmdArgs = []string{"image", "create", "--initrd", tc.initrd, "--vmlinux", tc.vmlinux, randImageName(),
+		"--filename", sampleWorkloadYaml, "--image", "sample-securecontainerimage", "--symmKeyFile", tc.keyFile,
+		"--nonceFile", tc.nonceFile}
+
+	std, stderr, err := executeCommand("rakshctl", cmdArgs...)
+	fmt.Printf("stdout: %+v, stderr: %+v, err: %+v", std, stderr, err)
+	if err != nil {
+		t.Errorf("\nGot the error: %+v", err)
+	}
+
+	//Validate block - Check if raksh-secret.yaml got generated or not
+	_, err = os.Stat("raksh-secret.yaml")
+	if err != nil {
+		t.Errorf("\nGot the error: %+v", err)
+	}
+
+}
