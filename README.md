@@ -183,7 +183,6 @@ spec:
 
 ## Convert the user workload to secure workload and deploy
 
-If you wish to use vault server for key management, please refer to the doc on [Vault Integration with raksh](docs/vault.md).
 
 Example workload:
 ```yaml

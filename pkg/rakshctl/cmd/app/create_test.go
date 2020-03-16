@@ -21,66 +21,39 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func TestInsertVaultSecret(t *testing.T) {
-	testVaultSecretName := "test-vault-secret"
-	expectSecrets := []corev1.EnvVar{
-		{
-			Name: "SC_VAULT_ADDR",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testVaultSecretName,
-					},
-					Key: "vaultAdd",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_TOKEN",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testVaultSecretName,
-					},
-					Key: "vaultToken",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_SECRET",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testVaultSecretName,
-					},
-					Key: "secretName",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_SYMM_KEY",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: testVaultSecretName,
-					},
-					Key: "keyName",
-				},
+func TestMountRakshSecrets(t *testing.T) {
+	testRakshSecretName := "test-raksh-secret"
+	testVolumeName := "secure-volume-raksh"
+
+	expectedVolume := corev1.Volume{
+		Name: testVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: testRakshSecretName,
 			},
 		},
 	}
+
+	expectedVolmount := corev1.VolumeMount{
+		Name:      testVolumeName,
+		ReadOnly:  true,
+		MountPath: "/etc/raksh-secrets",
+	}
+
 	testpod := &corev1.PodSpec{
 		Containers: []corev1.Container{
 			{Name: "c1"},
-			{Name: "c2"},
 		},
 	}
 
-	insertVaultSecret(testpod, testVaultSecretName)
+	mountRakshSecrets(testpod, testRakshSecretName)
 
 	for i := range testpod.Containers {
-		if equal := reflect.DeepEqual(expectSecrets, testpod.Containers[i].Env); !equal {
-			t.Fatalf("For container %s, actual : %+v is not matching the expected: %+v", testpod.Containers[i].Name, testpod.Containers[0].Env, expectSecrets)
+		if equal := reflect.DeepEqual(expectedVolmount, testpod.Containers[i].VolumeMounts[0]); !equal {
+			t.Fatalf("For container %s, actual : %+v is not matching the expected: %+v", testpod.Containers[i].Name, testpod.Containers[i].VolumeMounts[0], expectedVolmount)
+		}
+		if equal := reflect.DeepEqual(expectedVolume, testpod.Volumes[0]); !equal {
+			t.Fatalf("For container %s, actual : %+v is not matching the expected: %+v", testpod.Containers[i].Name, testpod.Volumes[0], expectedVolume)
 		}
 	}
 }

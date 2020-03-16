@@ -54,7 +54,11 @@ var (
 )
 
 const (
-	securePrefix = "secure-"
+	securePrefix           = "secure-"
+	secretFileName         = "raksh-secret.yaml"
+	rakshSecretName        = "raksh-secret"
+	rakshDummyConfigMapKey = "cmFrc2hkdW1teWtleQo="     //base64 encoded value "rakshdummykey"
+	rakshDummyNonce        = "cmFrc2hkdW1teW5vbmNlCg==" //base64 encode value "rakshdummynonce"
 )
 
 func NewCmdAppCreate() *cobra.Command {
@@ -99,6 +103,7 @@ func main() error {
 			fmt.Printf(UnsupportedKindMsg+"\n", file)
 			continue
 		}
+
 		scObj, cmObj, err := secureObject(obj)
 		if err != nil {
 			return err
@@ -124,6 +129,11 @@ func main() error {
 		}
 		fmt.Println("Wrote to ", secureFile)
 		fmt.Printf("Processing %s...: DONE\n", file)
+	}
+
+	err = createRakshSecret(rakshSecretName, "default", typeflags.Key, typeflags.Nonce)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -183,6 +193,65 @@ type Container struct {
 	Env       []corev1.EnvVar              `json:"env,omitempty"`
 	Ports     []corev1.ContainerPort       `json:"ports,omitempty"`
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+func createRakshSecret(secretName, namespace string, keyPath string, noncePath string) error {
+
+	var err error
+
+	data := map[string]string{
+		"configMapKey": "rakshDummyConfigMapKey",
+		"imageKey":     "rakshDummyImageKey",
+		"nonce":        "rakshDummyNonce",
+	}
+	label := map[string]string{
+		"comment": "dummy_secret",
+	}
+	//Get key and nonce if not using VM TEE
+	if typeflags.Insecure {
+		key, nonce, err := crypto.GetConfigMapKeys(keyPath, noncePath)
+		if err != nil {
+			fmt.Println("Unable to get the Key and Nonce")
+			return err
+		}
+		//The Keys are base64 encoded
+		data = map[string]string{
+			"configMapKey": string(key),
+			"imageKey":     string(key),
+			"nonce":        string(nonce),
+		}
+		label = map[string]string{
+			"comment": "actual_secret",
+		}
+	}
+
+	//Write YAML
+	secret := corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: secretName, Labels: label},
+		StringData: data,
+	}
+
+	var outf *os.File
+	secretFile := secretFileName
+	if output != "" {
+		secretFile = path.Join(output, secretFileName)
+		os.MkdirAll(filepath.Dir(secretFile), os.ModePerm)
+	}
+	if outf, err = os.Create(secretFile); err != nil {
+		return err
+	}
+	defer outf.Close()
+
+	err = writeObjTo(secret, outf)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Wrote to ", secretFile)
+	return nil
 }
 
 func newConfigMap(name, namespace string) corev1.ConfigMap {
@@ -311,8 +380,7 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 		}
 		cmObj.Data[container.Name] = string(cbytes)
 
-		// TODO - Move the symm key logic to create initrd command
-		encConfigMap, err := crypto.EncryptConfigMap(cbytes, typeflags.Key)
+		encConfigMap, err := crypto.EncryptConfigMap(cbytes, typeflags.Key, typeflags.Nonce)
 		if err != nil {
 			return scObj, cmObj, err
 		}
@@ -322,66 +390,34 @@ func secureObject(in runtime.Object) (securecontainersv1alpha1.SecureContainer, 
 
 	maskSensitiveData(podSpec)
 	mountConfigMap(podSpec, cmObj)
-
-	if typeflags.VaultSecret != "" {
-		insertVaultSecret(podSpec, typeflags.VaultSecret)
-	}
+	mountRakshSecrets(podSpec, rakshSecretName)
 
 	scObj = newSecureContainer(securePrefix+deploymentMetadata.Name, secureContainerImage, out.(runtime.Object))
 
 	return scObj, cmObj, nil
 }
 
-func insertVaultSecret(pod *corev1.PodSpec, secretName string) {
-	vaultSecrets := []corev1.EnvVar{
-		{
-			Name: "SC_VAULT_ADDR",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "vaultAdd",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_TOKEN",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "vaultToken",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_SECRET",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "secretName",
-				},
-			},
-		},
-		{
-			Name: "SC_VAULT_SYMM_KEY",
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: secretName,
-					},
-					Key: "keyName",
-				},
+//Mount the Raksh secrets
+func mountRakshSecrets(pod *corev1.PodSpec, secretName string) {
+	volumeName := securePrefix + "volume-" + "raksh"
+
+	volume := corev1.Volume{
+		Name: volumeName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: secretName,
 			},
 		},
 	}
 	for index := range pod.Containers {
-		pod.Containers[index].Env = append(pod.Containers[index].Env, vaultSecrets...)
+		volmount := corev1.VolumeMount{
+			Name:      volumeName,
+			ReadOnly:  true,
+			MountPath: "/etc/raksh-secrets",
+		}
+		pod.Containers[index].VolumeMounts = append(pod.Containers[index].VolumeMounts, volmount)
 	}
+	pod.Volumes = append(pod.Volumes, volume)
 }
 
 func writeObjTo(obj interface{}, writer io.Writer) error {
