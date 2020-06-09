@@ -42,9 +42,6 @@ func TestEncryptConfigMapFiles(t *testing.T) {
 
 	//Encode the Key
 	keyEnc := b64.StdEncoding.EncodeToString(key)
-	if err != nil {
-		t.Error(err)
-	}
 
 	err = ioutil.WriteFile(keyPath, []byte(keyEnc), 0644)
 	if err != nil {
