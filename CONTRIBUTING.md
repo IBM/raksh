@@ -7,8 +7,6 @@
 * [GitHub basic setup](#github-basic-setup)
 * [GitHub best practices](#github-best-practices)
 * [GitHub workflow](#github-workflow)
-* [Patch format](#patch-format)
-* [Stable branch backports](#Stable-branch-backports)
 * [Reviews](#reviews)
 * [Continuous Integration](#continuous-integration)
 * [Contact](#contact)
@@ -73,20 +71,8 @@ Prerequisites.
 
 * Review [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments) to avoid common `Golang` errors.
 * Use `gofmt` to fix any mechanical style issues.
+  eg- ``` gofmt -s -w <file> ```
 
-### Dependency management
-In order to add or update a dependency to this project run:
-```
-> export GO111MODULE=on
-> go get -u [DEPENDENCY]
-```
-Since RAKSH uses go modules we highly recommend reading the [go modules
-wiki](https://github.com/golang/go/wiki/Modules), especially the [daily workflow
-section](https://github.com/golang/go/wiki/Modules#daily-workflow).
-To ensure the working directory contains all necessary files afterwards, run:
-```
-> make vendor
-```
 
 ## Certificate of Origin
 
@@ -175,7 +161,7 @@ $ mkdir -p "$GOPATH"
 ##### Fork and clone
 
 In this example, we configure a Git environment to contribute to this very 
-`Community` repo. We create a sample branch, incorporate reviewer feedback, and rebase our commits.
+`raksh` repo. We create a sample branch, incorporate reviewer feedback, and rebase our commits.
 
 1. Fork the [upstream repository](https://help.github.com/articles/cloning-a-repository):
 
@@ -190,12 +176,37 @@ In this example, we configure a Git environment to contribute to this very
 ```sh
 $ mkdir -p $GOPATH/src/github.com/ibm
 $ cd $GOPATH/src/github.com/ibm
-$ git clone https://github.com/ibm/raksh.git
+$ git clone https://github.com/{your-github-username}/raksh.git
 $ git checkout -b 1.9.1-raksh origin/1.9.1-raksh
+$ cd raksh
 ```
    
 >**Note:** Cloning a forked repository automatically gives a remote `origin`.
 
+##### Configure the upstream remote
+
+Next, add the remote `upstream`. Configuring this remote allows you to
+synchronize your forked copy, `origin`, with the `upstream`. The 
+`upstream` URL varies by repository. We use the `upstream` from the Community for this example. 
+
+1. Change directory into `raksh`. 
+
+1. Set the remote `upstream` as follows. 
+
+    ```sh
+    $ git remote add upstream https://github.com/IBM/raksh.git
+    ```
+
+1. Run `git remote -v`. Your remotes should appear similar to these:
+
+    ```
+    origin  https://github.com/{your-github-username}/raksh.git (fetch)  
+    origin  https://github.com/{your-github-username}/raksh.git (push)  
+    upstream  https://github.com/IBM/raksh (fetch)  
+    upstream  https://github.com/IBM/raksh (push)  
+    ```
+
+For more details, see how to [set up a git remote](https://help.github.com/articles/configuring-a-remote-for-a-fork).
 
 ##### Create a topic branch
 
@@ -418,29 +429,6 @@ Use your real name (sorry, no pseudonyms or anonymous contributions.)
 If you set your `user.name` and `user.email` git configs, you can sign your
 commit automatically with `git commit -s`.
 
-## Stable branch backports
-
-Raksh maintains a number of stable branch releases. Bug fixes to
-the master branch are selectively applied to (or "backported") these stable branches.
-
-In order to aid identification of commits that potentially should be
-backported to the stable branches, all PRs submitted must be labeled with 
-one or more of the following labels. At least one label that is *not* 
-`stable-candidate` must be included.
-
-| Label              | Meaning |
-| -----              | ------- |
-| `bug`              | A bug fix, which will potentially be a backport candidate |
-| `cleanup`          | A cleanup, which will likely not be backported                 |
-| `feature`          | A new feature/enhancement, that will likely not be backported  |
-| `stable-candidate` | A PR selected for backporting - very likely a bug fix          |
-| `vendor`           | A golang vendor update. Might be considered for backport if the vendor update includes critical bug fixes |
-
-In the event that a bug fix PR is selected for backporting to the stable
-branches, the `stable-candidate` label is added if not already present, and
-the original author of the PR is asked if they will submit the relevant
-backport PRs. 
-
 ## Patch format
 
 ### General format
@@ -464,40 +452,11 @@ Signed-off-by: <contributor@foo.com>
 
 As shown above, pull requests must adhere to these guidelines:
 
-* Preface the PR title with the appropriate keyword found in [Subsystem](#subsystem)
-  
-* Ensure PR title length is 75 characters or fewer, including whichever 
-  `subsystem` term is used.
-
 * Ensure the PR body line length is 72 characters or fewer.
 
 The body of the message is **not** a continuation of the subject line and is 
 not used to extend the subject line beyond its character limit. The subject 
 line is a complete sentence and the body is a complete, standalone paragraph.
-
-### Subsystem
-
-The "subsystem" describes the area of the code that the change applies to.
-It does not have to match a particular directory name in the source tree
-because it is a "hint" to the reader. The subsystem is generally a single
-word. Although the subsystem must be specified, it is not validated. The
-author decides what is a relevant subsystem for each patch.
-
-Examples:
-
-| Subsystem | Description |
-|--|--|
-| `build` | `Makefile` or configuration script change |
-| `cli` | Change affecting command line options or commands |
-| `docs` | Documentation change |
-| `logging` | Logging change |
-| `vendor` | [Re-vendoring](#re-vendor-prs) change |
-
-To see the subsystem values chosen for existing commits:
-
-```
-$ git log --no-merges --pretty="%s" | cut -d: -f1 | sort -u
-```
 
 ### Best practices for patches
 
@@ -506,14 +465,7 @@ review, more likely to be accepted and merged, and more conducive for
 identifying problems during review.
 
 A PR can contain multiple patches. These patches should generally be related 
-to the [main patch](#main-patch) and the overall goal of the PR. However, it 
-is also acceptable to include additional or 
-[supplementary patches](#supplementary-patch) for things such as:
-
-- Formatting (or whitespace) fixes
-- Comment improvements
-- Tidy up work
-- Refactoring to simplify the codebase
+to the [main patch](#main-patch) and the overall goal of the PR.
 
 ### Examples
 
@@ -528,22 +480,6 @@ The token and pid data will be hold by the new Process structure and
 they are related to a container.
 
 Fixes: #123
-
-Signed-off-by: Ragni Garg <ragni.garg@in.ibm.com>
-```
-
-#### Supplementary patch
-
-If a PR contains multiple patches, [only one of those patches](#main-patch) needs to specify the "`Fixes #XXX`" comment. Supplementary patches have an identical format to the main patch, but do not need to specify a "`Fixes #XXX`"
-comment.
-
-Example:
-
-```
-image-builder: Fix incorrect error message
-
-Fixed an error message which was referring to an incorrect rootfs
-variable name.
 
 Signed-off-by: Ragni Garg <ragni.garg@in.ibm.com>
 ```
