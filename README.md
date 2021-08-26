@@ -1,3 +1,8 @@
+**NOTE**: This project is deprecated. All the work to enable confidential computing for VM TEEs is being pursued upstream in the Kata containers [project](https://github.com/orgs/kata-containers/projects/27). 
+
+Details on weekly meetings is available [here](https://docs.google.com/document/d/1E3GLCzNgrcigUlgWAZYlgqNTdVwiMwCRTJ0QnJhLZGA/edit#heading=h.lpk69k180q79).
+
+
 # Overview
 Raksh (`protect`) project is created with the aim to secure Kubernetes deployed
 workload along with its specification (POD or Deployment YAML) by leveraging VM based Trusted Execution Environment (TEE).
